@@ -46,7 +46,7 @@ func (w *fileCache) Get(serverUUID string, databasename string) (*schema.Root, e
 	if err != nil {
 		return nil, err
 	}
-	root := new(schema.Root)
+	root := &schema.Root{Payload: &schema.RootIndex{}, Signature: &schema.Signature{}}
 	lines := strings.Split(string(raw), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, databasename+":") {
@@ -58,7 +58,7 @@ func (w *fileCache) Get(serverUUID string, databasename string) (*schema.Root, e
 			if err != nil {
 				return nil, fmt.Errorf("could not find previous root")
 			}
-			root := new(schema.Root)
+			root := &schema.Root{Payload: &schema.RootIndex{}, Signature: &schema.Signature{}}
 			if err = proto.Unmarshal(oldRoot, root); err != nil {
 				return nil, err
 			}

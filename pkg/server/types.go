@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"github.com/codenotary/immudb/pkg/signer"
 	"net/http"
 	"os"
 	"sync"
@@ -60,6 +61,7 @@ type ImmuServer struct {
 	sysDb               *Db
 	metricsServer       *http.Server
 	mux                 sync.Mutex
+	Signer              signer.Signer
 }
 
 // DefaultServer ...

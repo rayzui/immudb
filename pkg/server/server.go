@@ -22,6 +22,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/codenotary/immudb/pkg/signer"
+	"github.com/golang/protobuf/proto"
 	"log"
 	"net"
 	"os"
@@ -172,6 +174,13 @@ func (s *ImmuServer) Start() error {
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(uis...)),
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(sss...)),
 	)
+
+	if s.Options.SignaturePrivateKey != "" {
+		if s.Signer, err = signer.NewSigner(s.Options.SignaturePrivateKey); err != nil {
+			return err
+		}
+	}
+
 	s.GrpcServer = grpc.NewServer(options...)
 	schema.RegisterImmuServiceServer(s.GrpcServer, s)
 	grpc_prometheus.Register(s.GrpcServer)
@@ -572,7 +581,19 @@ func (s *ImmuServer) CurrentRoot(ctx context.Context, e *empty.Empty) (*schema.R
 	if err != nil {
 		return nil, err
 	}
-	return s.dbList.GetByIndex(ind).CurrentRoot(e)
+
+	root, err := s.dbList.GetByIndex(ind).CurrentRoot(e)
+	if err != nil {
+		return nil, err
+	}
+	if s.Options.SignaturePrivateKey != "" {
+		m, err := proto.Marshal(root.Payload)
+		if err != nil {
+			return nil, err
+		}
+		root.Signature.PublicKey, root.Signature.Signature, err = s.Signer.Sign(m)
+	}
+	return root, err
 }
 
 // Set ...
